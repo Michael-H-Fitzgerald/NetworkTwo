@@ -35,43 +35,44 @@ def rec_Msg():
         recv_sock.bind(("", 0))
         data,address = recv_sock.recvfrom(1500)
         hop_count = 32 - data[36]
-        source_ipaddr = socket.inet_aton(data[12:16])
-        dest_ipaddr = socket.inet_aton(data[16:20])
+        source_ipaddr = socket.inet_ntoa(data[12:16])
+        dest_ipaddr = socket.inet_ntoa(data[16:20])
         source_hostname = socket.gethostbyaddr(dest_ipaddr)
-        resp_source_ipaddr = socket.inet_aton(data[40:44])
-        resp_dest_ipaddr = socket.inet_aton(data[44:48])
-        timeStamp = int((time.time() - data[32:34]) *1000)
+        resp_source_ipaddr = socket.inet_ntoa(data[40:44])
+        resp_dest_ipaddr = socket.inet_ntoa(data[44:48])
+        timeStamp = int((round(time.time()) - round(data[32:34]),3) *1000)
         dest_port = struct.unpack("!H", data[50:52])[0]
         matchTypes = ""
         isInStuff = False;
         filledStuff = []
-        for x in arrayToCheck:
-            if dest_ipaddr == x.ipaddr:
-                filledStuff.append("IP address")
-                isInStuff = True
-            elif dest_port == x.Port:
-                filledStuff.append("Port")
-                isInStuff = True
-            elif data[32:34] == x.IPID:
-                filledStuff.append("IPID")
-                isInStuff = True
-        if isInStuff == True:
-            myMatch = ""
-            for matches in filledStuff:
-                 MyMatch = myMatch + matches
-            print("Target:" + source_hostname + ";" + source_ipaddr + "Hops:" + hop_count + ";" + "RTT:" + timeStamp +";" + "Matched on:" + matchTypes)
-        else:
-            print("Random Lost Packet")
-        
+        # for x in arrayToCheck:
+        #     if dest_ipaddr == x.ipaddr:
+        #         filledStuff.append("IP address")
+        #         isInStuff = True
+        #     elif dest_port == x.Port:
+        #         filledStuff.append("Port")
+        #         isInStuff = True
+        #     elif data[32:34] == x.IPID:
+        #         filledStuff.append("IPID")
+        #         isInStuff = True
+        # if isInStuff == True:
+        #     myMatch = ""
+        #     for matches in filledStuff:
+        MyMatch = ""
+        source_hostname = source_hostname.decode("utf-8")
+        source_ipaddr = source_ipaddr.decode("utf-8")
+        print("Target:" + source_hostname + ";" + source_ipaddr + "Hops:" + hop_count + ";" + "RTT:" + timeStamp +";" + "Matched on:" + MyMatch)
+
+
 def sendMsg():
+    myTime = time.time()
     payload = bytes(msg + 'a'*(1472 - len(msg)), 'ascii')
     s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
     myIpAdr = listOfIp()
     for x in myIpAdr:
-        myTime = time.time()
-        myTimeRound = round(myTime, 3)
+        someTime = time.time()
+        myTimeRound = int(round(someTime,3)*1000 - round(myTime,3) *1000)
         myIp = x.ipaddr
-        print(myIp)
         myHostname = x.hostanme
         # ip header fields
         ip_ihl = 5
@@ -100,6 +101,7 @@ def sendMsg():
         myObject = checkObj(x.ipaddr,ip_id,PortNum)
         arrayToCheck.append(myObject)
         s.sendto(probe_packet, (x.ipaddr, PortNum))
+    s.close()
 def main():
     mySendThread = threading.Thread(target=sendMsg())
     myListenThread = threading.Thread(target=rec_Msg())
